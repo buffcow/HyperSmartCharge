@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HyperSmartCharge</string>
+    <string name="xposed_description">Allow devices that support navigation smart charge to use smart charging in non-navigation situations.</string>
+</resources>

@@ -5,7 +5,7 @@ Allow devices that **support navigation smart charge** to use smart charging in 
 
 ## 使用
 1. 在 LSPosed 管理器中激活模块
-2. 作用域勾选 系统框架(**`android`**)
+2. 作用域勾选 系统框架(**`system`**)
 3. **重启手机**
 
 ## 注意

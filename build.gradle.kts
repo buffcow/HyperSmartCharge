@@ -13,7 +13,7 @@ plugins {
 
 val gitCommitCount
     get() = kotlin.runCatching {
-        Runtime.getRuntime().exec("git rev-list --count HEAD").let { process ->
+        ProcessBuilder("git", "rev-list", "--count", "HEAD").start().let { process ->
             process.waitFor()
             process.inputStream.bufferedReader().readText().trim().toInt()
         }
@@ -21,7 +21,7 @@ val gitCommitCount
 
 val gitCommitTag
     get() = kotlin.runCatching {
-        Runtime.getRuntime().exec("git describe --tags --long").let { process ->
+        ProcessBuilder("git", "describe", "--tags", "--long").start().let { process ->
             process.waitFor()
             val output = process.inputStream.bufferedReader().readText().trim()
             val split = output.split('-')
@@ -34,12 +34,13 @@ val defaultAppVerCode by extra(gitCommitCount)
 val defaultAppVerName by extra(gitCommitTag)
 val defaultAppPackageName by extra("cn.buffcow.hypersc")
 
-val androidMinSdkVersion by extra(24)
-val androidTargetSdkVersion by extra(34)
-val androidCompileSdkVersion by extra(34)
-val androidBuildToolsVersion by extra("34.0.0")
-val androidSourceCompatibility by extra(JavaVersion.VERSION_17)
-val androidTargetCompatibility by extra(JavaVersion.VERSION_17)
+val androidMinSdkVersion by extra(32)
+val androidTargetSdkVersion by extra(35)
+val androidCompileSdkVersion by extra(35)
+val androidBuildToolsVersion by extra("35.0.0")
+val androidSourceCompatibility by extra(JavaVersion.VERSION_21)
+val androidTargetCompatibility by extra(JavaVersion.VERSION_21)
+val kotlinJvmTarget by extra(JvmTarget.JVM_21)
 
 
 subprojects {
@@ -79,6 +80,8 @@ subprojects {
     }
 
     tasks.withType(KotlinCompile::class.java).all {
-        kotlinOptions.jvmTarget = JvmTarget.JVM_17.target
+        compilerOptions {
+            jvmTarget = kotlinJvmTarget
+        }
     }
 }

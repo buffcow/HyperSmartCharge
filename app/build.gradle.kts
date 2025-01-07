@@ -66,4 +66,5 @@ dependencies {
     implementation(libs.androidx.annotation)
 
     compileOnly(libs.api.xposed)
+    compileOnly(files("libs/mi_charge.jar"))
 }

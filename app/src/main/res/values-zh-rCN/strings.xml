@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">智能断充</string>
+    <string name="xposed_description">为支持电池充电保护的设备添加自定义断充阈值设置，妈妈再也不用担心我的手机过充啦！</string>
+
+    <string name="smart_charge_close">关闭</string>
+    <string name="smart_charge_pref_summary">在电量达到设定的值时暂停充电</string>
+    <string name="smart_charge_set_note">"\n          ！！注意事项！！\n          1. 此功能为实验性设置, 仅供学习和交流使用\n          2. 确认设置后，可能会影响其它电池保护逻辑\n          3. 启用此功能后，请不要同时启用其他电池保护功能\n          4. 若需关闭此功能并恢复其它电池保护，请按以下步骤操作:\n              1) 将滑动条调至 '关闭' 并确认设置\n              2) 启用您希望使用的其他电池保护功能          \n        "</string>
+</resources>

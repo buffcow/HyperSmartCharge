@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">智能断充</string>
-    <string name="xposed_description">让支持导航断充的设备在非导航情景下也能使用智能断充，妈妈再也不用担心我的手机过充啦！</string>
-</resources>

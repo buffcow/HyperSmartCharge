@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">HyperSmartCharge</string>
-    <string name="xposed_description">Allow devices that support navigation smart charge to use smart charging in non-navigation situations.</string>
+    <string name="xposed_description">Add custom charge protect value setting for devices that support battery charge protection.</string>
+
+    <string name="smart_charge_value_per" translatable="false">%1$d%%</string>
+    <string name="smart_charge_close">Close</string>
+    <string name="smart_charge_pref_summary">The device will stop charging when battery level reaches the custom value</string>
+    <string name="smart_charge_set_note">"\n          ！！Notes！！\n          1. This setting is an experimental feature.\n          2. After confirming the setting value, it will affect the logic of other battery protections.\n          3. Do not enable any other battery protection after enabling this feature\n          4. To turn off this feature and restore other battery protection, follow these steps:\n              1) Slide the seek bar to 'Close' and click OK\n              2) Turn on the battery protection you want to enable          \n        "</string>
 </resources>

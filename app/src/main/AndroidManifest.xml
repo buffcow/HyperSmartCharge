@@ -20,6 +20,6 @@
 
         <meta-data
             android:name="xposedscope"
-            android:value="android" />
+            android:value="com.miui.securitycenter" />
     </application>
 </manifest>

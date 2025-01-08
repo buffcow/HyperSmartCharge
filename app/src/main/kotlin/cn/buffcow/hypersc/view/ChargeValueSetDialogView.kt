@@ -1,4 +1,4 @@
-package cn.buffcow.hypersc
+package cn.buffcow.hypersc.view
 
 import android.content.Context
 import android.content.res.Resources
@@ -7,6 +7,8 @@ import android.view.Gravity
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
+import cn.buffcow.hypersc.R
+import cn.buffcow.hypersc.utils.ChargeProtectionUtils
 
 /**
  * @author qingyu
@@ -24,7 +26,7 @@ class ChargeValueSetDialogView @JvmOverloads constructor(
     private val moduleResources get() = moduleResourcesFetcher.invoke()
 
     private val Int.realProgressValue
-        get() = (this + MIN_PROGRESS_VALUE).takeIf(ChargeProtectionUtils::isChargePercentValueAvailable)
+        get() = (this + MIN_PROGRESS_VALUE).takeIf(ChargeProtectionUtils::isSmartChargePercentValueValid)
 
     init {
         orientation = VERTICAL
@@ -58,7 +60,7 @@ class ChargeValueSetDialogView @JvmOverloads constructor(
     private fun initView() {
         mSeekBar.apply {
             max = MAX_PROGRESS_VALUE - MIN_PROGRESS_VALUE
-            ChargeProtectionUtils.getSmartChargeValueFromSP(context)?.let {
+            ChargeProtectionUtils.getSmartChargePercentValue(context)?.let {
                 progress = (it - MIN_PROGRESS_VALUE).coerceAtLeast(0)
             }
             invalidateSeekbarValueText(progress)
@@ -95,7 +97,7 @@ class ChargeValueSetDialogView @JvmOverloads constructor(
             ChargeProtectionUtils.openCommonProtectMode(pv)
         } ?: ChargeProtectionUtils.closeSmartCharge()
 
-        ChargeProtectionUtils.saveSmartChargeValueToSP(context, percentValue)
+        ChargeProtectionUtils.putSmartChargePercentValue(context, percentValue)
 
         return res to percentValue
     }

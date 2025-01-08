@@ -34,7 +34,7 @@ val defaultAppVerCode by extra(gitCommitCount)
 val defaultAppVerName by extra(gitCommitTag)
 val defaultAppPackageName by extra("cn.buffcow.hypersc")
 
-val androidMinSdkVersion by extra(32)
+val androidMinSdkVersion by extra(33)
 val androidTargetSdkVersion by extra(35)
 val androidCompileSdkVersion by extra(35)
 val androidBuildToolsVersion by extra("35.0.0")

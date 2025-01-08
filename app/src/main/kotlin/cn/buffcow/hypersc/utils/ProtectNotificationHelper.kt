@@ -1,4 +1,4 @@
-package cn.buffcow.hypersc
+package cn.buffcow.hypersc.utils
 
 import android.annotation.SuppressLint
 import android.app.Notification
@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * @author qingyu
  * <p>Create on 2025/01/06 19:25</p>
  */
-object ProtectNotificationHelper {
+object ProtectNotificationHelper : RemoteEventHelper.EventListener {
 
     private const val NOTIFICATION_ID = 1008611
     private const val CHANNEL_ID = "com.miui.powercenter.low"
@@ -39,7 +39,7 @@ object ProtectNotificationHelper {
             when (status) {
                 BatteryManager.BATTERY_STATUS_FULL,
                 BatteryManager.BATTERY_STATUS_CHARGING,
-                    -> if (level <= 100 && plugged != 0) showNotification(context)
+                    -> if (level <= 100 && plugged != 0) createAndShowNotification(context)
 
                 else -> removeNotification(context)
             }
@@ -54,11 +54,29 @@ object ProtectNotificationHelper {
                     addAction(Intent.ACTION_BATTERY_CHANGED)
                 }
             )
+            RemoteEventHelper.register(context, this)
             YLog.debug("registered battery changed receiver.")
         }
     }
 
-    fun unregisterBatteryReceiver(context: Context) {
+    override fun onReceive(context: Context, event: RemoteEventHelper.Event, intent: Intent) {
+        YLog.debug("receive client event:$event, intent:$intent")
+        when (event) {
+            RemoteEventHelper.Event.UnregisterBatteryReceiver -> {
+                unregisterBatteryReceiver(context)
+            }
+
+            is RemoteEventHelper.Event.UpdateNotification -> {
+                event.percentValue?.let { value ->
+                    if (notificationShowed) {
+                        publishNotification(context, value)
+                    }
+                } ?: removeNotification(context)
+            }
+        }
+    }
+
+    private fun unregisterBatteryReceiver(context: Context) {
         if (batteryRegistered.compareAndSet(true, false)) {
             context.applicationContext.unregisterReceiver(batteryReceiver)
             removeNotification(context)
@@ -66,20 +84,32 @@ object ProtectNotificationHelper {
         }
     }
 
-    @SuppressLint("NotificationPermission")
-    private fun showNotification(context: Context) {
+    fun createAndShowNotification(context: Context) {
         if (notificationShowed) return
-        val perChg = ChargeProtectionUtils.getSmartChargeValueFromSP(context) ?: return
+        val perChg = ChargeProtectionUtils.getSmartChargePercentValue(context)
+        YLog.debug("showNotification-smart charge percent value:$perChg")
+        perChg ?: return
 
         val notificationManager = context.getSystemService(NotificationManager::class.java)
         notificationManager.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                getString(context, "battery_and_property_ordinary_notify"),
+                context.getString("battery_and_property_ordinary_notify"),
                 NotificationManager.IMPORTANCE_LOW
             )
         )
 
+        publishNotification(context, "$perChg", notificationManager)
+
+        notificationShowed = true
+    }
+
+    @SuppressLint("NotificationPermission")
+    private fun publishNotification(
+        context: Context,
+        percentValue: String,
+        notificationManager: NotificationManager = context.getSystemService(NotificationManager::class.java),
+    ) {
         val icon = Icon.createWithResource(
             context,
             "ic_performance_notification".resolveAsId(context, "drawable")
@@ -92,16 +122,15 @@ object ProtectNotificationHelper {
             ),
             PendingIntent.FLAG_IMMUTABLE
         )
-        val notification = Notification.Builder(context, CHANNEL_ID)
+        Notification.Builder(context, CHANNEL_ID)
             .setSmallIcon(icon)
-            .setContentTitle(getString(context, "pc_health_charge_protect_title"))
-            .setContentText(getString(context, "pc_health_charge_protect_noti_summary_title", "$perChg%"))
+            .setContentTitle(context.getString("pc_health_charge_protect_title"))
+            .setContentText(context.getString("pc_health_charge_protect_noti_summary_title", "$percentValue%"))
             .setAutoCancel(true)
             .setContentIntent(intent)
+            .setVisibility(Notification.VISIBILITY_PUBLIC)
             .build()
-        notificationManager.notify(NOTIFICATION_ID, notification)
-
-        notificationShowed = true
+            .apply { notificationManager.notify(NOTIFICATION_ID, this) }
     }
 
     private fun removeNotification(context: Context) {
@@ -109,8 +138,8 @@ object ProtectNotificationHelper {
         notificationShowed = false
     }
 
-    private fun getString(context: Context, name: String, vararg args: String): String {
-        return context.getString(name.resolveAsId(context, "string"), *args)
+    private fun Context.getString(name: String, vararg args: String): String {
+        return getString(name.resolveAsId(this, "string"), *args)
     }
 
     @SuppressLint("DiscouragedApi")

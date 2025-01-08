@@ -1,9 +1,13 @@
-package cn.buffcow.hypersc
+package cn.buffcow.hypersc.hook
 
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
 import android.widget.Toast
+import cn.buffcow.hypersc.R
+import cn.buffcow.hypersc.utils.ChargeProtectionUtils
+import cn.buffcow.hypersc.utils.RemoteEventHelper
+import cn.buffcow.hypersc.view.ChargeValueSetDialogView
 import com.highcapable.yukihookapi.hook.entity.YukiBaseHooker
 import com.highcapable.yukihookapi.hook.factory.method
 import com.highcapable.yukihookapi.hook.log.YLog
@@ -56,7 +60,7 @@ object ProtectFragmentHooker : YukiBaseHooker() {
             }
             addSmartChargeTextPreference(fragment)
         } else {
-            ProtectNotificationHelper.unregisterBatteryReceiver(appContext ?: getContext(fragment))
+            appContext?.let { RemoteEventHelper.sendEvent(it, RemoteEventHelper.Event.UnregisterBatteryReceiver) }
         }
     }
 
@@ -76,9 +80,9 @@ object ProtectFragmentHooker : YukiBaseHooker() {
                         val (suc, value) = dialogView.syncProtectValue()
                         Toast.makeText(context, "$suc($value)", Toast.LENGTH_SHORT).show()
                         callMethod(preference, "setText", getSmartChargeValueText(getContext(fragment), value))
-                        ProtectNotificationHelper.unregisterBatteryReceiver(appContext ?: context)
-                        if (suc && value != null) {
-                            ProtectNotificationHelper.registerBatteryReceiver(appContext ?: context)
+                        appContext?.let {
+                            val pv = if (suc) value?.toString() else null
+                            RemoteEventHelper.sendEvent(it, RemoteEventHelper.Event.UpdateNotification(pv))
                         }
                         dismiss()
                     }
@@ -118,11 +122,11 @@ object ProtectFragmentHooker : YukiBaseHooker() {
         }
     }
 
-    private fun getSmartChargeValueText(context: Context, value: Int? = null): String {
-        val v = value
-            ?.takeIf(ChargeProtectionUtils::isChargePercentValueAvailable)
-            ?: ChargeProtectionUtils.getSmartChargeValueFromSP(context)
-        return v?.let {
+    private fun getSmartChargeValueText(
+        context: Context,
+        value: Int? = ChargeProtectionUtils.getSmartChargePercentValue(context),
+    ): String {
+        return value?.takeIf(ChargeProtectionUtils::isSmartChargePercentValueValid)?.let {
             moduleAppResources.getString(R.string.smart_charge_value_per, it)
         } ?: moduleAppResources.getString(R.string.smart_charge_close)
     }

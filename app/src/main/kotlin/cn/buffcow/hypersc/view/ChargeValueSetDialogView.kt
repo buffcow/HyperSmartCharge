@@ -32,23 +32,24 @@ class ChargeValueSetDialogView @JvmOverloads constructor(
         orientation = VERTICAL
         layoutDirection = LAYOUT_DIRECTION_LTR
         addViewInLayout(
-            SeekBar(context).also { mSeekBar = it },
+            TextView(context).also { mTvSeekBarValue = it },
             0,
-            LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                setPadding(12.dp2px(), 25.dp2px(), 12.dp2px(), 28.dp2px())
+            LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+                gravity = Gravity.CENTER
+                setMargins(0, 10.dp2px(), 0, 0)
             }
         )
         addViewInLayout(
-            TextView(context).also { mTvSeekBarValue = it },
+            SeekBar(context).also { mSeekBar = it },
             1,
-            LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
-                gravity = Gravity.CENTER
+            LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+                setMargins(12.dp2px(), 28.dp2px(), 12.dp2px(), 0)
             }
         )
         addViewInLayout(
             TextView(context).apply {
                 text = moduleResources.getString(R.string.smart_charge_set_note).trimIndent()
-                setTextColor(Color.DKGRAY)
+                setTextColor(Color.GRAY)
             },
             2,
             LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
@@ -66,7 +67,7 @@ class ChargeValueSetDialogView @JvmOverloads constructor(
             invalidateSeekbarValueText(progress)
             setOnSeekBarChangeListener(this@ChargeValueSetDialogView)
         }
-        mTvSeekBarValue.setTextColor(Color.GRAY)
+        mTvSeekBarValue.setTextColor(Color.BLACK)
     }
 
     private fun invalidateSeekbarValueText(progress: Int) {
@@ -102,7 +103,9 @@ class ChargeValueSetDialogView @JvmOverloads constructor(
         return res to percentValue
     }
 
-    private fun Int.dp2px() = (context.resources.displayMetrics.density * this + 0.5).toInt()
+    private fun Int.dp2px() = if (this <= 0) 0 else {
+        (context.resources.displayMetrics.density * this + 0.5).toInt()
+    }
 
     companion object {
         private const val MIN_PROGRESS_VALUE = ChargeProtectionUtils.MIN_CHARGE_PERCENT_VALUE - 1

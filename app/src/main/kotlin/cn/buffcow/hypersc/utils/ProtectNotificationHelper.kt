@@ -50,9 +50,7 @@ object ProtectNotificationHelper : RemoteEventHelper.EventListener {
         if (batteryRegistered.compareAndSet(false, true)) {
             context.applicationContext.registerReceiver(
                 batteryReceiver,
-                IntentFilter().apply {
-                    addAction(Intent.ACTION_BATTERY_CHANGED)
-                }
+                IntentFilter(Intent.ACTION_BATTERY_CHANGED)
             )
             RemoteEventHelper.register(context, this)
             YLog.debug("registered battery changed receiver.")
@@ -70,6 +68,11 @@ object ProtectNotificationHelper : RemoteEventHelper.EventListener {
                 event.percentValue?.let { value ->
                     if (notificationShowed) {
                         publishNotification(context, value)
+                    } else if (batteryRegistered.get()) {
+                        context.registerReceiver(
+                            null,
+                            IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+                        )?.let { batteryReceiver.onReceive(context, it) }
                     }
                 } ?: removeNotification(context)
             }

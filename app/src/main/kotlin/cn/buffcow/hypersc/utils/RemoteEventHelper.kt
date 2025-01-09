@@ -4,7 +4,8 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Bundle
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -19,7 +20,7 @@ object RemoteEventHelper {
 
     private val mReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            Event.intentOf(intent)?.let { event ->
+            intent.getParcelableExtra(EXTRA_REMOTE_EVENT, Event::class.java)?.let { event ->
                 listeners.forEach {
                     it.onReceive(context, event, intent)
                 }
@@ -28,48 +29,32 @@ object RemoteEventHelper {
     }
 
     fun register(context: Context, listener: EventListener) {
-        try {
-            context.unregisterReceiver(mReceiver)
-        } catch (_: Exception) {
+        if (listeners.addIfAbsent(listener)) {
+            try {
+                context.unregisterReceiver(mReceiver)
+            } catch (_: Exception) {
+            }
+            context.registerReceiver(
+                mReceiver,
+                IntentFilter(ACTION_SEND_REMOTE_EVENT),
+                Context.RECEIVER_NOT_EXPORTED
+            )
         }
-        listeners.addIfAbsent(listener)
-        context.registerReceiver(
-            mReceiver,
-            IntentFilter().apply { Event.actions.forEach(::addAction) },
-            Context.RECEIVER_NOT_EXPORTED
-        )
     }
 
     fun sendEvent(context: Context, event: Event) {
         context.sendBroadcast(
-            Intent(event.action).apply { event.data?.let(::putExtras) }
+            Intent(ACTION_SEND_REMOTE_EVENT).apply {
+                setPackage(context.packageName)
+                putExtra(EXTRA_REMOTE_EVENT, event)
+            }
         )
     }
 
-    sealed class Event(val action: String, val data: Bundle? = null) {
-
-        data object UnregisterBatteryReceiver : Event(ACTION_UNREGISTER_BATTERY_RECEIVER)
-
-        data class UpdateNotification(val percentValue: String?) : Event(
-            ACTION_UPDATE_NOTIFICATION,
-            Bundle().apply { putString(EXTRA_UPDATE_NOTIFICATION_VALUE, percentValue) }
-        )
-
-        companion object {
-
-            val actions = listOf(
-                ACTION_UPDATE_NOTIFICATION,
-                ACTION_UNREGISTER_BATTERY_RECEIVER
-            )
-
-            fun intentOf(intent: Intent): Event? {
-                return when (intent.action) {
-                    ACTION_UPDATE_NOTIFICATION -> UpdateNotification(intent.getStringExtra(EXTRA_UPDATE_NOTIFICATION_VALUE))
-                    ACTION_UNREGISTER_BATTERY_RECEIVER -> UnregisterBatteryReceiver
-                    else -> null
-                }
-            }
-        }
+    @Parcelize
+    sealed class Event : Parcelable {
+        data object UnregisterBatteryReceiver : Event()
+        data class UpdateNotification(val percentValue: String?) : Event()
     }
 
     fun interface EventListener {
@@ -77,7 +62,5 @@ object RemoteEventHelper {
     }
 }
 
-private const val ACTION_UPDATE_NOTIFICATION = "com.miui.security-center.action.UPDATE_NOTIFICATION"
-private const val EXTRA_UPDATE_NOTIFICATION_VALUE = "com.miui.security-center.extra.UPDATE_NOTIFICATION_VALUE"
-
-private const val ACTION_UNREGISTER_BATTERY_RECEIVER = "com.miui.security-center.action.UNREGISTER_BATTERY_RECEIVER"
+private const val EXTRA_REMOTE_EVENT = "com.miui.security-center.extra.REMOTE_EVENT"
+private const val ACTION_SEND_REMOTE_EVENT = "com.miui.security-center.action.SEND_REMOTE_EVENT"

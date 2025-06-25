@@ -1,7 +1,6 @@
 package cn.buffcow.hypersc.hook
 
 import android.app.AlertDialog
-import android.app.Dialog
 import android.content.Context
 import android.widget.Toast
 import cn.buffcow.hypersc.R
@@ -26,7 +25,7 @@ import de.robv.android.xposed.XposedHelpers.callMethod
  */
 object ProtectFragmentHooker : YukiBaseHooker() {
 
-    private const val PREFERENCE_KEY_ALWAYS_PROTECT = "cb_always_charge_protect"
+    // private const val PREFERENCE_KEY_ALWAYS_PROTECT = "cb_always_charge_protect"
     private const val PREFERENCE_KEY_INTELLECT_PROTECT = "cb_intellect_charge_protect"
     private const val PREFERENCE_KEY_CATEGORY_PROTECT = "category_features_battery_protect"
     private const val PREFERENCE_KEY_SMART_CHARGE_VALUE_SET = "charge_protect_value_setting"
@@ -50,13 +49,13 @@ object ProtectFragmentHooker : YukiBaseHooker() {
                     returnType = BooleanType
                 }.hook().after { onPreferenceClick(instance, args(0).any()) }
 
-                method {
-                    name = "onPreferenceChange"
-                    paramCount = 2
-                    returnType = BooleanType
-                }.hook().after {
-                    onPreferenceChange(instance, args(0).any(), args(1).any())
-                }
+                // method {
+                //     name = "onPreferenceChange"
+                //     paramCount = 2
+                //     returnType = BooleanType
+                // }.hook().after {
+                //     onPreferenceChange(instance, args(0).any(), args(1).any())
+                // }
             }
             addSmartChargeTextPreference(fragment)
         } else {
@@ -72,53 +71,53 @@ object ProtectFragmentHooker : YukiBaseHooker() {
             AlertDialog.Builder(context)
                 .setTitle(moduleAppResources.getString(R.string.app_name))
                 .setView(dialogView)
-                .setPositiveButton(android.R.string.ok, null)
-                .setNegativeButton(android.R.string.cancel) { dialog, _ -> dialog.cancel() }
-                .create().apply {
-                    show()
-                    getButton(Dialog.BUTTON_POSITIVE).setOnClickListener {
-                        val (suc, value) = dialogView.syncProtectValue()
-                        Toast.makeText(context, "$suc($value)", Toast.LENGTH_SHORT).show()
-                        callMethod(preference, "setText", getSmartChargeValueText(getContext(fragment), value))
-                        appContext?.let {
-                            val pv = if (suc) value?.toString() else null
-                            RemoteEventHelper.sendEvent(it, RemoteEventHelper.Event.UpdateNotification(pv))
-                        }
-                        dismiss()
+                .setNegativeButton(android.R.string.cancel) { dialog, _ -> dialog.dismiss() }
+                .setPositiveButton(android.R.string.ok) { dialog, _ ->
+                    val (suc, value) = dialogView.syncProtectValue()
+                    Toast.makeText(context, "$suc($value)", Toast.LENGTH_SHORT).show()
+                    callMethod(preference, "setText", getSmartChargeValueText(getContext(fragment), value))
+                    appContext?.let {
+                        val pv = if (suc) value?.toString() else null
+                        RemoteEventHelper.sendEvent(it, RemoteEventHelper.Event.UpdateNotification(pv))
                     }
+                    dialog.dismiss()
                 }
+                .create().show()
         }
     }
 
-    private fun onPreferenceChange(fragment: Any, preference: Any?, obj: Any?) {
-        YLog.debug("onPreferenceChange() called with: preference = $preference, obj = $obj")
-        preference ?: return
-        getProtectCategory(fragment)
-            ?.let { findPreference(it, PREFERENCE_KEY_SMART_CHARGE_VALUE_SET) }
-            ?.takeIf {
-                callMethod(preference, "getKey").let { k ->
-                    k == PREFERENCE_KEY_ALWAYS_PROTECT
-                            || k == PREFERENCE_KEY_INTELLECT_PROTECT
-                }
-            }
-            ?.let { pref ->
-                callMethod(
-                    pref,
-                    "setEnabled",
-                    (obj as? Boolean)?.not() ?: checkSmartChargeShouldEnable(fragment)
-                )
-            }
-    }
+    // private fun onPreferenceChange(fragment: Any, preference: Any?, obj: Any?) {
+    //     YLog.debug("onPreferenceChange() called with: preference = $preference, obj = $obj")
+    //     callMethod(preference ?: return, "getKey").takeIf { k ->
+    //         k == PREFERENCE_KEY_ALWAYS_PROTECT
+    //                 || k == PREFERENCE_KEY_INTELLECT_PROTECT
+    //     } ?: return
+    //     callMethod(
+    //         findPreference(getPreferenceScreen(fragment), PREFERENCE_KEY_SMART_CHARGE_VALUE_SET),
+    //         "setEnabled",
+    //         (obj as? Boolean)?.not() ?: checkSmartChargeShouldEnable(fragment)
+    //     )
+    // }
 
     private fun addSmartChargeTextPreference(fragment: Any) {
-        XposedHelpers.newInstance("miuix.preference.TextPreference".toClass(), getContext(fragment)).apply {
+        val smartChargeProtectCategory = XposedHelpers.newInstance(
+            "miuix.preference.PreferenceCategory".toClass(),
+            getContext(fragment), // ctx
+            null // attrs
+        )
+        callMethod(getPreferenceScreen(fragment), "addPreference", smartChargeProtectCategory)
+
+        XposedHelpers.newInstance(
+            "miuix.preference.TextPreference".toClass(),
+            getContext(fragment)
+        ).apply {
             callMethod(this, "setOnPreferenceClickListener", fragment)
             callMethod(this, "setKey", PREFERENCE_KEY_SMART_CHARGE_VALUE_SET)
-            callMethod(this, "setEnabled", checkSmartChargeShouldEnable(fragment))
+            callMethod(this, "setEnabled", true)
             callMethod(this, "setText", getSmartChargeValueText(getContext(fragment)))
             callMethod(this, "setTitle", moduleAppResources.getString(R.string.app_name))
             callMethod(this, "setSummary", moduleAppResources.getString(R.string.smart_charge_pref_summary))
-            getProtectCategory(fragment)?.let { callMethod(it, "addPreference", this) }
+            callMethod(smartChargeProtectCategory, "addPreference", this)
         }
     }
 
@@ -135,20 +134,20 @@ object ProtectFragmentHooker : YukiBaseHooker() {
         findPreference(it, PREFERENCE_KEY_INTELLECT_PROTECT)
     } != null
 
-    private fun checkSmartChargeShouldEnable(fragment: Any) = try {
-        getProtectCategory(fragment)?.run {
-            val always = findPreference(this, PREFERENCE_KEY_ALWAYS_PROTECT)?.let {
-                callMethod(it, "isChecked")
-            }
-            val intellect = findPreference(this, PREFERENCE_KEY_INTELLECT_PROTECT)?.let {
-                callMethod(it, "isChecked")
-            }
-            always != true && intellect != true
-        } == true
-    } catch (th: Throwable) {
-        YLog.error("checkSmartChargeShouldEnable error:", th)
-        false
-    }
+    // private fun checkSmartChargeShouldEnable(fragment: Any) = try {
+    //     getProtectCategory(fragment)?.run {
+    //         val always = findPreference(this, PREFERENCE_KEY_ALWAYS_PROTECT)?.let {
+    //             callMethod(it, "isChecked")
+    //         }
+    //         val intellect = findPreference(this, PREFERENCE_KEY_INTELLECT_PROTECT)?.let {
+    //             callMethod(it, "isChecked")
+    //         }
+    //         always != true && intellect != true
+    //     } == true
+    // } catch (th: Throwable) {
+    //     YLog.error("checkSmartChargeShouldEnable error:", th)
+    //     false
+    // }
 
     private fun getProtectCategory(fragment: Any) = findPreference(
         fragment,
@@ -158,6 +157,8 @@ object ProtectFragmentHooker : YukiBaseHooker() {
     private fun getContext(fragment: Any): Context {
         return callMethod(fragment, "requireContext") as Context
     }
+
+    private fun getPreferenceScreen(fragment: Any): Any = callMethod(fragment, "getPreferenceScreen")
 
     private fun findPreference(who: Any, key: String): Any? = callMethod(who, "findPreference", key)
 }

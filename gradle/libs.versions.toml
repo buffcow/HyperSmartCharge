@@ -1,8 +1,8 @@
 [versions]
-agp = "8.7.3"
+agp = "8.11.0"
 yuki = "1.2.1"
-kotlin = "2.1.0"
-ksp = "2.1.0-1.0.29"
+kotlin = "2.1.20"
+ksp = "2.1.20-2.0.1"
 
 [plugins]
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
